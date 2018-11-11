@@ -13,35 +13,39 @@ NUM_TYPE_ATTACK = 9  # 攻击信息种类数量
 class Data:
 
     def __init__(self, file_path):
-
         self.data = None
         self.sheet = None
-        self.copy_book = None
         try:
-            self.data = open_workbook(file_path, formatting_info=True)
+            self.data = open_workbook(file_path)
         except Exception:
-            print("检查文件打开地址")
+            print("打开文件出错")
             quit()
         else:
             print("打开文件: " + file_path)
-            self.copy_book = copy(self.data)
+            self.sheet = self.data.sheet_by_index(0)
         self.first_col_list = self.sheet.row_values(0)
         self.nrow_data = self.sheet.nrows
 
 
     # 数据填充
     def initial_data(self):
+        # 填充经济损失为0情况下的经济损失等级
         ncol_property = self.first_col_list.index('property')
         ncol_propextent = self.first_col_list.index('propextent')
         num = 0
+        copy_book = copy(self.data)
+        copy_first_sheet = copy_book.get_sheet(0)
         print("正在处理'propextent'行")
         for i in range(self.nrow_data):
             if self.sheet.cell_value(i, ncol_property) == 0:
-                self.copy_book.write(i, ncol_propextent, 0)
+                copy_first_sheet.write(i, ncol_propextent, 0)
                 num = num + 1
         print(str(num) + "行设置为0")
+        # 根据欧几里得距离计算相似度，匹配填充nkill,nwound,propextent
 
-        self.copy_book.save(r'./competition topic/新测试数据.xlsx')
+
+
+        copy_book.save(r'./competition topic/测试数据new.xlsx')
 
     # 获取指定表名的数据列（优先选取第一列）
     def get_data_list(self, col_name):

@@ -9,6 +9,4 @@ def init_data():
 
 
 data = init_data()
-casualty_array = data.get_casualty_by_attack_and_weapon()
-print(casualty_array[0].size())
-print(casualty_array[1].size())
+data.initial_data()

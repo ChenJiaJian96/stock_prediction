@@ -8,6 +8,8 @@ def init_data():
     return local_data
 
 
-data = init_data()
-data.initial_data()
-data.get_casualty_by_attack_and_weapon()
+data = init_data()  # 创建实例
+data.initial_data()  # 填充数据
+data.get_score_attack_list_by_casualty()
+data.get_score_weapon_list_by_casualty()
+

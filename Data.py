@@ -19,12 +19,14 @@ class Data:
         print("正在打开" + file_path)
         try:
             self.data = open_workbook(file_path)
+            self.reference_data = open_workbook(r'./competition topic/年度地区总人数及GDP情况.xlsx')
         except Exception:
             print("打开文件出错")
             quit()
         else:
             print("打开文件: " + file_path)
             self.sheet = self.data.sheet_by_index(0)
+            self.reference_sheet = self.reference_data.sheet_by_index(0)
         self.first_col_list = self.sheet.row_values(0)
         self.nrow_data = self.sheet.nrows
         # 对用列序号
@@ -161,3 +163,150 @@ class Data:
             attack_list.clear()
             weapon_list.clear()
         return casualty_array
+
+    # 获取单一攻击信息下的伤亡情况
+    def get_casualty_by_attack(self):
+        num_peop_matrix = self.get_matrix_peop_by_year_and_region()
+        result_dict = {}
+        attack_times_dict = {}  # 计算某种攻击类型的次数
+        for i in range(1, NUM_TYPE_ATTACK + 1):
+            result_dict[i] = [0, 0]
+            attack_times_dict[i] = 0
+        for i in range(1, self.nrow_data):
+            iyear = self.sheet.cell_value(i, self.ncol_iyear)
+            region = self.sheet.cell_value(i, self.ncol_region)
+            total = num_peop_matrix[iyear, region]
+            nkill = self.sheet.cell_value(i, self.ncol_nkill) / total
+            nwound = self.sheet.cell_value(i, self.ncol_nwound) / total
+            attack_type1 = self.sheet.cell_value(i, self.ncol_attacktype1)
+            attack_type2 = self.sheet.cell_value(i, self.ncol_attacktype2)
+            attack_type3 = self.sheet.cell_value(i, self.ncol_attacktype3)
+            if attack_type2 == 0:  # 只有一种攻击的情况
+                m = result_dict[attack_type1][0]
+                n = result_dict[attack_type1][1]
+                result_dict[attack_type1] = [m + nkill, n + nwound]
+                attack_times_dict[attack_type1] += 1
+            elif attack_type3 == 0:  # 有两种攻击的情况
+                m = result_dict[attack_type1][0]
+                n = result_dict[attack_type1][1]
+                o = result_dict[attack_type2][0]
+                p = result_dict[attack_type2][1]
+                result_dict[attack_type1] = [m + nkill * 1/2, n + nwound * 1/2]
+                result_dict[attack_type2] = [o + nkill * 1/2, p + nwound * 1/2]
+                attack_times_dict[attack_type1] += 1
+                attack_times_dict[attack_type2] += 1
+            else:  # 有三种攻击的情况
+                m = result_dict[attack_type1][0]
+                n = result_dict[attack_type1][1]
+                o = result_dict[attack_type2][0]
+                p = result_dict[attack_type2][1]
+                x = result_dict[attack_type3][0]
+                y = result_dict[attack_type3][1]
+                result_dict[attack_type1] = [m + nkill * 1/3, n + nwound * 1/3]
+                result_dict[attack_type2] = [o + nkill * 1/3, p + nwound * 1/3]
+                result_dict[attack_type3] = [x + nkill * 1/3, y + nwound * 1/3]
+                attack_times_dict[attack_type1] += 1
+                attack_times_dict[attack_type2] += 1
+                attack_times_dict[attack_type3] += 1
+        # 将攻击总威力除去总次数，得出平均威力
+        for i in range(1, NUM_TYPE_ATTACK + 1):
+            times = attack_times_dict[i]
+            m = result_dict[i][0]
+            n = result_dict[i][1]
+            if times == 0:
+                result_dict[i] = [0, 0]
+            else:
+                result_dict[i] = [m / times * 10000, n / times * 10000]
+        return result_dict
+
+    # 根据伤亡情况对攻击信息进行分类
+    def get_score_attack_list_by_casualty(self):
+        casualty_dict = self.get_casualty_by_attack()
+        score_dict = {}
+        for i in range(1, NUM_TYPE_ATTACK + 1):
+            score_dict[i] = casualty_dict[i][0] * 0.8 + casualty_dict[i][1] * 0.2
+        print("攻击信息伤亡得分：")
+        print(score_dict)
+
+    # 获取单一武器信息下的伤亡情况
+    def get_casualty_by_weapon(self):
+        num_peop_matrix = self.get_matrix_peop_by_year_and_region()
+        result_dict = {}
+        weapon_times_dict = {}  # 计算某种武器类型的次数
+        for i in range(1, NUM_TYPE_WEAPON + 1):
+            result_dict[i] = [0, 0]
+            weapon_times_dict[i] = 0
+        for i in range(1, self.nrow_data):
+            iyear = self.sheet.cell_value(i, self.ncol_iyear)
+            region = self.sheet.cell_value(i, self.ncol_region)
+            total = num_peop_matrix[iyear, region]
+            nkill = self.sheet.cell_value(i, self.ncol_nkill) / total
+            nwound = self.sheet.cell_value(i, self.ncol_nwound) / total
+            weapon_type1 = self.sheet.cell_value(i, self.ncol_weaptype1)
+            weapon_type2 = self.sheet.cell_value(i, self.ncol_weaptype2)
+            weapon_type3 = self.sheet.cell_value(i, self.ncol_weaptype3)
+            if weapon_type2 == 0:  # 只有一种攻击的情况
+                m = result_dict[weapon_type1][0]
+                n = result_dict[weapon_type1][1]
+                result_dict[weapon_type1] = [m + nkill, n + nwound]
+                weapon_times_dict[weapon_type1] += 1
+            elif weapon_type3 == 0:  # 有两种攻击的情况
+                m = result_dict[weapon_type1][0]
+                n = result_dict[weapon_type1][1]
+                o = result_dict[weapon_type2][0]
+                p = result_dict[weapon_type2][1]
+                result_dict[weapon_type1] = [m + nkill * 1/2, n + nwound * 1/2]
+                result_dict[weapon_type2] = [o + nkill * 1/2, p + nwound * 1/2]
+                weapon_times_dict[weapon_type1] += 1
+                weapon_times_dict[weapon_type2] += 1
+            else:  # 有三种攻击的情况
+                m = result_dict[weapon_type1][0]
+                n = result_dict[weapon_type1][1]
+                o = result_dict[weapon_type2][0]
+                p = result_dict[weapon_type2][1]
+                x = result_dict[weapon_type3][0]
+                y = result_dict[weapon_type3][1]
+                result_dict[weapon_type1] = [m + nkill * 1/3, n + nwound * 1/3]
+                result_dict[weapon_type2] = [o + nkill * 1/3, p + nwound * 1/3]
+                result_dict[weapon_type3] = [x + nkill * 1/3, y + nwound * 1/3]
+                weapon_times_dict[weapon_type1] += 1
+                weapon_times_dict[weapon_type2] += 1
+                weapon_times_dict[weapon_type3] += 1
+        # 将攻击总威力除去总次数，得出平均威力
+        for i in range(1, NUM_TYPE_WEAPON + 1):
+            times = weapon_times_dict[i]
+            m = result_dict[i][0]
+            n = result_dict[i][1]
+            if times == 0:
+                result_dict[i] = [0, 0]
+            else:
+                result_dict[i] = [m / times * 10000, n / times * 10000]
+        return result_dict
+
+    # 根据伤亡情况对武器信息进行分类
+    def get_score_weapon_list_by_casualty(self):
+        casualty_dict = self.get_casualty_by_weapon()
+        score_dict = {}
+        for i in range(1, NUM_TYPE_WEAPON + 1):
+            score_dict[i] = casualty_dict[i][0] * 0.8 + casualty_dict[i][1] * 0.2
+        print("武器信息伤亡得分：")
+        print(score_dict)
+
+    # 获取指定时间下地区总人数
+    def get_matrix_peop_by_year_and_region(self):
+        first_list = self.reference_sheet.row_values(0)
+        ncol_iyear = first_list.index('iyear')
+        ncol_region = first_list.index('region')
+        ncol_num = first_list.index('num_people')
+        year_list = list(self.reference_sheet.col_values(ncol_iyear, start_rowx=1, end_rowx=None))
+        region_list = list(self.reference_sheet.col_values(ncol_region, start_rowx=1, end_rowx=None))
+        num_list = list(self.reference_sheet.col_values(ncol_num, start_rowx=1, end_rowx=None))
+        data_matrix = {}
+        if len(year_list) == len(region_list) and len(region_list) == len(num_list):
+            for i in range(len(year_list)):
+                data_matrix[int(year_list[i]), int(region_list[i])] = num_list[i]
+            return data_matrix
+        else:
+            print("get_matrix_peop_by_year_and_region ERROR!")
+            return 0
+

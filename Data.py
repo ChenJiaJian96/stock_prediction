@@ -109,6 +109,8 @@ class Data:
                 prop_data = self.sheet.cell_value(min_pos, self.ncol_propextent)
                 first_sheet.write(i, self.ncol_propextent, prop_data)
         copy_book.save(r'./competition topic/proceed.xlsx')
+        self.data = open_workbook(r'./competition topic/proceed.xlsx')
+        self.sheet = self.data.sheet_by_index(0)
 
     # 返回填充数据时需要计算相似度的数据
     def ret_datalist_cal_simi(self, row):
@@ -126,9 +128,12 @@ class Data:
             print("Error!!!!!!")
             return 100
         else:
-            res = pow((list1[1] - list2[1]), 2) + pow((list1[2] - list2[2]), 2) + 0.7 * pow((list1[3] - list2[3]), 2) + 0.2 * pow(
-                (list1[4] - list2[4]), 2) + 0.1 * pow((list1[5] - list2[5]), 2) + 0.7 * pow((list1[6] - list2[6]), 2) + 0.2 * pow(
-                (list1[7] - list2[7]), 2) + 0.1 * pow((list1[8] - list2[8]), 2) + 0.7 * pow((list1[9] - list2[9]), 2) + 0.2 * pow(
+            res = pow((list1[1] - list2[1]), 2) + pow((list1[2] - list2[2]), 2) + 0.7 * pow((list1[3] - list2[3]),
+                                                                                            2) + 0.2 * pow(
+                (list1[4] - list2[4]), 2) + 0.1 * pow((list1[5] - list2[5]), 2) + 0.7 * pow((list1[6] - list2[6]),
+                                                                                            2) + 0.2 * pow(
+                (list1[7] - list2[7]), 2) + 0.1 * pow((list1[8] - list2[8]), 2) + 0.7 * pow((list1[9] - list2[9]),
+                                                                                            2) + 0.2 * pow(
                 (list1[10] - list2[10]), 2) + 0.1 * pow((list1[11] - list2[11]), 2)
             return sqrt(res)
 
@@ -137,7 +142,7 @@ class Data:
         m = self.first_col_list.index(col_name)
         return list(self.sheet.col_values(m, start_rowx=1, end_rowx=None))
 
-    # 统计各攻击信息和武器信息综合的人员伤亡情况
+    # 统计指定攻击信息和武器信息情况下的人员伤亡情况
     # 返回伤亡情况数组： 2 * 武器信息种类 * 攻击信息种类
     def get_casualty_by_attack_and_weapon(self):
         death_list = self.get_data_list('nkill')
@@ -147,18 +152,12 @@ class Data:
         casualty_array = np.zeros((2, NUM_TYPE_WEAPON + 1, NUM_TYPE_ATTACK + 1))
         for j in range(3):
             attack_list = self.get_data_list('attacktype' + str(j + 1))
-            print("attack_list length: " + str(len(attack_list)))
             weapon_list = self.get_data_list('weaptype' + str(j + 1))
-            print("weapon_list length: " + str(len(weapon_list)))
-            # TODO: 后期补充后此处两个list不应该存在空元素，可以删掉判断
             for i in range(len(death_list)):
-                if attack_list[i] != '' and weapon_list[i] != '':
-                    if death_list[i] != '':
-                        casualty_array[0, int(weapon_list[i]), int(attack_list[i])] = \
-                            casualty_array[0][int(weapon_list[i])][int(attack_list[i])] + int(death_list[i])
-                    if wound_list[i] != '':
-                        casualty_array[1, int(weapon_list[i]), int(attack_list[i])] = \
-                            casualty_array[1][int(weapon_list[i])][int(attack_list[i])] + int(wound_list[i])
+                casualty_array[0, int(weapon_list[i]), int(attack_list[i])] = \
+                    casualty_array[0][int(weapon_list[i])][int(attack_list[i])] + int(death_list[i])
+                casualty_array[1, int(weapon_list[i]), int(attack_list[i])] = \
+                    casualty_array[1][int(weapon_list[i])][int(attack_list[i])] + int(wound_list[i])
             attack_list.clear()
             weapon_list.clear()
         return casualty_array

@@ -10,3 +10,4 @@ def init_data():
 
 data = init_data()
 data.initial_data()
+data.get_casualty_by_attack_and_weapon()

@@ -191,8 +191,8 @@ class Data:
                 n = result_dict[attack_type1][1]
                 o = result_dict[attack_type2][0]
                 p = result_dict[attack_type2][1]
-                result_dict[attack_type1] = [m + nkill * 1/2, n + nwound * 1/2]
-                result_dict[attack_type2] = [o + nkill * 1/2, p + nwound * 1/2]
+                result_dict[attack_type1] = [m + nkill * 1 / 2, n + nwound * 1 / 2]
+                result_dict[attack_type2] = [o + nkill * 1 / 2, p + nwound * 1 / 2]
                 attack_times_dict[attack_type1] += 1
                 attack_times_dict[attack_type2] += 1
             else:  # 有三种攻击的情况
@@ -202,9 +202,9 @@ class Data:
                 p = result_dict[attack_type2][1]
                 x = result_dict[attack_type3][0]
                 y = result_dict[attack_type3][1]
-                result_dict[attack_type1] = [m + nkill * 1/3, n + nwound * 1/3]
-                result_dict[attack_type2] = [o + nkill * 1/3, p + nwound * 1/3]
-                result_dict[attack_type3] = [x + nkill * 1/3, y + nwound * 1/3]
+                result_dict[attack_type1] = [m + nkill * 1 / 3, n + nwound * 1 / 3]
+                result_dict[attack_type2] = [o + nkill * 1 / 3, p + nwound * 1 / 3]
+                result_dict[attack_type3] = [x + nkill * 1 / 3, y + nwound * 1 / 3]
                 attack_times_dict[attack_type1] += 1
                 attack_times_dict[attack_type2] += 1
                 attack_times_dict[attack_type3] += 1
@@ -227,6 +227,50 @@ class Data:
             score_dict[i] = casualty_dict[i][0] * 0.8 + casualty_dict[i][1] * 0.2
         print("攻击信息伤亡得分：")
         print(score_dict)
+
+    # 获取单一攻击信息下的经济损失等级情况
+    def get_economic_loss_by_attack(self):
+        propscore_list = self.get_propscore_list()
+        result_dict = {}
+        attack_times_dict = {}  # 计算某种武器类型的次数
+        for i in range(1, NUM_TYPE_ATTACK + 1):
+            result_dict[i] = 0
+            attack_times_dict[i] = 0
+        for i in range(1, self.nrow_data):
+            j = i - 1
+            if propscore_list[j] != 0:
+                score = propscore_list[j]
+                attack_type1 = self.sheet.cell_value(i, self.ncol_attacktype1)
+                attack_type2 = self.sheet.cell_value(i, self.ncol_attacktype2)
+                attack_type3 = self.sheet.cell_value(i, self.ncol_attacktype3)
+                if attack_type2 == 0:  # 只有一种攻击的情况
+                    m = result_dict[attack_type1]
+                    result_dict[attack_type1] = [m + score]
+                    attack_times_dict[attack_type1] += 1
+                elif attack_type3 == 0:  # 有两种攻击的情况
+                    m = result_dict[attack_type1]
+                    o = result_dict[attack_type2]
+                    result_dict[attack_type1] = [m + score * 1 / 2]
+                    result_dict[attack_type2] = [o + score * 1 / 2]
+                    attack_times_dict[attack_type1] += 1
+                    attack_times_dict[attack_type2] += 1
+                else:  # 有三种攻击的情况
+                    m = result_dict[attack_type1]
+                    o = result_dict[attack_type2]
+                    x = result_dict[attack_type3]
+                    result_dict[attack_type1] = [m + score * 1 / 3]
+                    result_dict[attack_type2] = [o + score * 1 / 3]
+                    result_dict[attack_type3] = [x + score * 1 / 3]
+                    attack_times_dict[attack_type1] += 1
+                    attack_times_dict[attack_type2] += 1
+                    attack_times_dict[attack_type3] += 1
+        # 将攻击总经济损失得分除去总次数，得出平均威力
+        for i in range(1, NUM_TYPE_ATTACK + 1):
+            times = attack_times_dict[i]
+            m = result_dict[i]
+            if times != 0:
+                result_dict[i] = m / times * 10000
+        return result_dict
 
     # 获取单一武器信息下的伤亡情况
     def get_casualty_by_weapon(self):
@@ -255,8 +299,8 @@ class Data:
                 n = result_dict[weapon_type1][1]
                 o = result_dict[weapon_type2][0]
                 p = result_dict[weapon_type2][1]
-                result_dict[weapon_type1] = [m + nkill * 1/2, n + nwound * 1/2]
-                result_dict[weapon_type2] = [o + nkill * 1/2, p + nwound * 1/2]
+                result_dict[weapon_type1] = [m + nkill * 1 / 2, n + nwound * 1 / 2]
+                result_dict[weapon_type2] = [o + nkill * 1 / 2, p + nwound * 1 / 2]
                 weapon_times_dict[weapon_type1] += 1
                 weapon_times_dict[weapon_type2] += 1
             else:  # 有三种攻击的情况
@@ -266,9 +310,9 @@ class Data:
                 p = result_dict[weapon_type2][1]
                 x = result_dict[weapon_type3][0]
                 y = result_dict[weapon_type3][1]
-                result_dict[weapon_type1] = [m + nkill * 1/3, n + nwound * 1/3]
-                result_dict[weapon_type2] = [o + nkill * 1/3, p + nwound * 1/3]
-                result_dict[weapon_type3] = [x + nkill * 1/3, y + nwound * 1/3]
+                result_dict[weapon_type1] = [m + nkill * 1 / 3, n + nwound * 1 / 3]
+                result_dict[weapon_type2] = [o + nkill * 1 / 3, p + nwound * 1 / 3]
+                result_dict[weapon_type3] = [x + nkill * 1 / 3, y + nwound * 1 / 3]
                 weapon_times_dict[weapon_type1] += 1
                 weapon_times_dict[weapon_type2] += 1
                 weapon_times_dict[weapon_type3] += 1
@@ -292,6 +336,81 @@ class Data:
         print("武器信息伤亡得分：")
         print(score_dict)
 
+    # 获取单一攻击信息下的经济损失等级情况
+    def get_economic_loss_by_weapon(self):
+        propscore_list = self.get_propscore_list()
+        result_dict = {}
+        weapon_times_dict = {}  # 计算某种武器类型的次数
+        for i in range(1, NUM_TYPE_WEAPON + 1):
+            result_dict[i] = 0
+            weapon_times_dict[i] = 0
+        for i in range(1, self.nrow_data):
+            j = i - 1
+            if propscore_list[j] != 0:
+                score = propscore_list[j]
+                weapon_type1 = self.sheet.cell_value(i, self.ncol_weaptype1)
+                weapon_type2 = self.sheet.cell_value(i, self.ncol_weaptype2)
+                weapon_type3 = self.sheet.cell_value(i, self.ncol_weaptype3)
+                if weapon_type2 == 0:  # 只有一种攻击的情况
+                    m = result_dict[weapon_type1]
+                    result_dict[weapon_type1] = [m + score]
+                    weapon_times_dict[weapon_type1] += 1
+                elif weapon_type3 == 0:  # 有两种攻击的情况
+                    m = result_dict[weapon_type1]
+                    o = result_dict[weapon_type2]
+                    result_dict[weapon_type1] = [m + score * 1 / 2]
+                    result_dict[weapon_type2] = [o + score * 1 / 2]
+                    weapon_times_dict[weapon_type1] += 1
+                    weapon_times_dict[weapon_type2] += 1
+                else:  # 有三种攻击的情况
+                    m = result_dict[weapon_type1]
+                    o = result_dict[weapon_type2]
+                    x = result_dict[weapon_type3]
+                    result_dict[weapon_type1] = [m + score * 1 / 3]
+                    result_dict[weapon_type2] = [o + score * 1 / 3]
+                    result_dict[weapon_type3] = [x + score * 1 / 3]
+                    weapon_times_dict[weapon_type1] += 1
+                    weapon_times_dict[weapon_type2] += 1
+                    weapon_times_dict[weapon_type3] += 1
+        # 将攻击总经济损失得分除去总次数，得出平均威力
+        for i in range(1, NUM_TYPE_WEAPON + 1):
+            times = weapon_times_dict[i]
+            m = result_dict[i]
+            if times != 0:
+                result_dict[i] = m / times * 10000
+        return result_dict
+
+    # 获取经济换算得分列表
+    def get_propscore_list(self):
+        propextent_list = self.get_data_list("propextent")
+        propscore_list = self.propextent_to_score(propextent_list)
+        num_score = 0
+        total_score = 0
+        for i in propscore_list:
+            if i == 10 or i == 100 or i == 1000:
+                total_score += i
+                num_score += 1
+        average_score = total_score / num_score
+        for i in range(len(propscore_list)):
+            if propscore_list[i] == 4:
+                propscore_list[i] = average_score
+        return propscore_list
+
+    # 将经济损失等级换算为经济损失得分
+    @staticmethod
+    def propextent_to_score(extent_list):
+        result_list = []
+        for i in extent_list:
+            if i == 1:
+                result_list.append(1000)
+            elif i == 2:
+                result_list.append(100)
+            elif i == 3:
+                result_list.append(10)
+            else:
+                result_list.append(i)
+        return result_list
+
     # 获取指定时间下地区总人数
     def get_matrix_peop_by_year_and_region(self):
         first_list = self.reference_sheet.row_values(0)
@@ -310,3 +429,8 @@ class Data:
             print("get_matrix_peop_by_year_and_region ERROR!")
             return 0
 
+    # 获取目标类型的权重分类得分
+    def get_matrix_targtype_score(self):
+        result = {1: 3, 2: 5, 3: 5, 4: 5, 5: 2, 6: 5, 7: 5, 8: 3, 9: 4, 10: 2, 11: 4, 12: 4, 13: 2, 14: 2, 15: 4, 16: 4,
+                  17: 3, 18: 2, 19: 4, 20: 1, 21: 4, 22: 3}
+        return result

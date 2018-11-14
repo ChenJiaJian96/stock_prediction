@@ -1,7 +1,7 @@
 from openpyxl import *
-from xlwt import *
 import numpy as np
-from xlutils.copy import copy
+import numpy.linalg as nlg
+import pandas as pd
 from math import pow, sqrt
 
 global NUM_TYPE_WEAPON
@@ -19,18 +19,13 @@ class Data:
         self.data = None
         self.sheet = None
         print("正在打开" + file_path)
-        try:
-            self.data = load_workbook(file_path)
-            self.reference_data = load_workbook(r'./competition topic/年度地区总人数及GDP情况.xlsx')
-        except Exception:
-            print("打开文件出错")
-            quit()
-        else:
-            print("打开文件: " + file_path)
-            self.sheet = self.data.worksheets[0]
-            self.reference_sheet = self.reference_data.worksheets[0]
-            self.nrow_data = self.sheet.max_row  # 当前工作表的行数
-            self.ncol_data = self.sheet.max_column  # 当前工作表的列数
+        self.data = load_workbook(file_path)
+        self.reference_data = load_workbook(r'./competition topic/年度地区总人数及GDP情况.xlsx')
+        print("打开文件: " + file_path)
+        self.sheet = self.data.worksheets[0]
+        self.reference_sheet = self.reference_data.worksheets[0]
+        self.nrow_data = self.sheet.max_row  # 当前工作表的行数
+        self.ncol_data = self.sheet.max_column  # 当前工作表的列数
         self.first_row_list = []
         for i in range(1, self.ncol_data + 1):
             self.first_row_list.append(self.sheet.cell(1, i).value)
@@ -91,7 +86,6 @@ class Data:
                 num_need_cal_list.append(row)
         # 开始计算
         for i in num_need_cal_list:
-            print("正在计算第" + str(i) + "行数据")
             # 临时列表，用于保存当前处理的数据 nrow:原来xls中是第nrow行数据
             # [nrow,nyear,region,attacktype1,2,3,weapontype1,2,3,targtype1,2,3]
             temp_list = self.ret_datalist_cal_simi(i)
@@ -533,9 +527,26 @@ class Data:
                 result_list.append(i)
         return result_list
 
+    # 获取攻击类型的权重分类得分
+    @staticmethod
+    def get_matrix_attacktype_score_result():
+        result = {1: 1.6, 2: 2.7, 3: 2.3, 4: 2.2, 5: 2.4, 6: 1.7, 7: 1.3, 8: 3.8, 9: 4.0}
+        print("单一攻击类型的得分")
+        print(result)
+        return result
+
+    # 获取武器类型的权重分类得分
+    @staticmethod
+    def get_matrix_weapontype_score_result():
+        result = {1: 1.0, 2: 2.3, 3: 1.0, 4: 1.0, 5: 3.7, 6: 3.3, 7: 2.4, 8: 2.3, 9: 2.7, 10: 4.1, 11: 2.2, 12: 2.0,
+                  13: 4.0}
+        print("单一武器类型的得分")
+        print(result)
+        return result
+
     # 获取目标类型的权重分类得分
     @staticmethod
-    def get_matrix_targtype_score():
+    def get_matrix_targtype_score_result():
         result = {1: 3, 2: 5, 3: 5, 4: 5, 5: 2, 6: 5, 7: 5, 8: 3, 9: 4, 10: 2, 11: 4, 12: 4, 13: 2, 14: 2, 15: 4, 16: 4,
                   17: 3, 18: 2, 19: 4, 20: 1, 21: 4, 22: 3}
         print("单一目标类型的得分")
@@ -544,8 +555,8 @@ class Data:
 
     # 获取不同地区的权重分类得分
     @staticmethod
-    def get_matrix_region_score():
-        result = {1: 12, 2: 3, 3: 7, 4: 9, 5: 3, 6: 1, 7: 3, 8: 12, 9: 7, 10: 7, 11: 1, 12: 9}
+    def get_matrix_region_score_result():
+        result = {1: 5, 2: 2, 3: 3, 4: 4, 5: 2, 6: 1, 7: 2, 8: 5, 9: 3, 10: 3, 11: 1, 12: 4}
         print("不同地区的得分")
         print(result)
         return result
@@ -557,3 +568,101 @@ class Data:
         backitems = [[v[1], v[0]] for v in items]
         backitems.sort(reverse=True)
         return [backitems[i][1] for i in range(0, len(backitems))]
+
+    # 根据正交因子模型计算
+    def get_orthogonal_factor_matrix(self):
+        attack_dict = self.get_matrix_attacktype_score_result()
+        weapon_dict = self.get_matrix_weapontype_score_result()
+        target_dict = self.get_matrix_targtype_score_result()
+        region_dict = self.get_matrix_region_score_result()
+        attack1 = self.get_data_list("attacktype1")
+        for i in range(len(attack1)):
+            if attack1[i] != 0:
+                attack1[i] = attack_dict[attack1[i]]
+        attack2 = self.get_data_list("attacktype2")
+        for i in range(len(attack2)):
+            if attack2[i] != 0:
+                attack2[i] = attack_dict[attack2[i]]
+        attack3 = self.get_data_list("attacktype3")
+        for i in range(len(attack3)):
+            if attack3[i] != 0:
+                attack3[i] = attack_dict[attack3[i]]
+        weapon1 = self.get_data_list('weaptype1')
+        for i in range(len(weapon1)):
+            if weapon1[i] != 0:
+                weapon1[i] = weapon_dict[weapon1[i]]
+        weapon2 = self.get_data_list('weaptype2')
+        for i in range(len(weapon2)):
+            if weapon2[i] != 0:
+                weapon2[i] = weapon_dict[weapon2[i]]
+        weapon3 = self.get_data_list('weaptype3')
+        for i in range(len(weapon3)):
+            if weapon3[i] != 0:
+                weapon3[i] = weapon_dict[weapon3[i]]
+        target1 = self.get_data_list('targtype1')
+        for i in range(len(target1)):
+            if target1[i] != 0:
+                target1[i] = target_dict[target1[i]]
+        target2 = self.get_data_list('targtype2')
+        for i in range(len(target2)):
+            if target2[i] != 0:
+                target2[i] = target_dict[target2[i]]
+        target3 = self.get_data_list('targtype3')
+        for i in range(len(target3)):
+            if target3[i] != 0:
+                target3[i] = target_dict[target3[i]]
+        region = self.get_data_list('region')
+        for i in range(len(region)):
+            if region[i] != 0:
+                region[i] = region_dict[region[i]]
+        data_dict = {'attack1': attack1, 'attack2': attack2, 'attack3': attack3, 'weapon1': weapon1, 'weapon2': weapon2,
+                     'weapon3': weapon3, 'target1': target1, 'target2': target2, 'target3': target3,
+                     'region': region}
+        X = pd.DataFrame(data_dict)
+        # X_mean = X.mean()
+        # # 样本差离阵E
+        # E = np.mat(np.zeros((10, 10)))
+        # for i in range(10):
+        #     for j in range(10):
+        #         E += (X.iloc[i, :].values.reshape(10, 1) - X_mean.values.reshape(10, 1)) * (
+        #                 X.iloc[i, :].values.reshape(1, 10) - X_mean.values.reshape(1, 10))
+        # # 样本相关阵R
+        # R = np.mat(np.zeros((10, 10)))
+        # for i in range(10):
+        #     for j in range(10):
+        #         R[i, j] = E[i, j] / sqrt(E[i, i] * E[j, j])
+        # 样本相关阵R
+        R = X.corr()
+        # 求特征值和特征向量
+        eig_value, eig_vector = nlg.eig(R)
+        eig = pd.DataFrame()
+        eig['names'] = X.columns
+        eig['eig_value'] = eig_value
+        eig.sort_values('eig_value', ascending=False, inplace=True)
+        # 求因子模型的因子载荷阵A
+        num_factor = 0
+        for m in range(1, 11):
+            if eig['eig_value'][:m].sum() / eig['eig_value'].sum() > 0.8:
+                num_factor = m
+                print("num_factor: " + str(m))
+                break
+        A = np.mat(np.zeros((10, num_factor)))
+        for i in range(num_factor):
+            A[:, i] = (sqrt(eig_value[i]) * eig_vector[:, i]).reshape(10, 1)
+        # 求特殊因子方差和共同度的估计
+        h = np.zeros(10)  # 共同度
+        D = np.mat(np.eye(10))  # 特殊因子方差
+        for i in range(10):
+            a = A[i, :] * A[i, :].T
+            h[i] = a[0, 0]
+            D[i, i] = 1 - a[0, 0]
+        a = pd.DataFrame(A)
+        column_list = []
+        index_list = []
+        for i in range(1, num_factor + 1):
+            column_list.append('factor' + str(i))
+        for j in range(1, 11):
+            index_list.append('x' + str(j))
+        a.columns = column_list
+        a.index = index_list
+        print(a)

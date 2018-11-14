@@ -571,6 +571,65 @@ class Data:
 
     # 根据正交因子模型计算
     def get_orthogonal_factor_matrix(self):
+        data_dict = self.get_dict_factors_score()
+        X = pd.DataFrame(data_dict)
+        X_mean = X.mean()
+        print("X_mean")
+        print(X_mean)
+        # 样本相关阵R
+        R = X.corr()
+        # 求特征值和特征向量
+        eig_value, eig_vector = nlg.eig(R)
+        eig = pd.DataFrame()
+        eig['names'] = X.columns
+        eig['eig_value'] = eig_value
+        eig.sort_values('eig_value', ascending=False, inplace=True)
+        # 求因子模型的因子载荷阵A
+        num_factor = 0
+        for m in range(1, 11):
+            if eig['eig_value'][:m].sum() / eig['eig_value'].sum() > 0.8:
+                num_factor = m
+                print("num_factor: " + str(m))
+                break
+        A = np.mat(np.zeros((10, num_factor)))
+        for i in range(num_factor):
+            A[:, i] = (sqrt(eig_value[i]) * eig_vector[:, i]).reshape(10, 1)
+        # 求特殊因子方差和共同度的估计
+        h = np.zeros(10)  # 共同度
+        D = np.mat(np.eye(10))  # 特殊因子方差
+        for i in range(10):
+            a = A[i, :] * A[i, :].T
+            h[i] = a[0, 0]
+            D[i, i] = 1 - a[0, 0]
+        a = pd.DataFrame(A)
+        column_list = []
+        index_list = []
+        for i in range(1, num_factor + 1):
+            column_list.append('factor' + str(i))
+        for j in range(1, 11):
+            index_list.append('x' + str(j))
+        a.columns = column_list
+        a.index = index_list
+        print(a)
+        # 计算逆矩阵，得出Factor = B * X
+        B = A.I
+        b = pd.DataFrame(B)
+        b.columns = index_list
+        b.index = column_list
+        print(b)
+        # 得出特殊因子得分
+        score_result = {}
+        for i in range(0, num_factor):
+            score = 0
+            for j in range(0, 10):
+                score += B[i, j] * X_mean[j]
+            score_result[i] = score
+        print("因子得分列表")
+        print(score_result)
+        return score_result
+
+    # 获取10个影响因素根据源数据换算分数的dict
+    def get_dict_factors_score(self):
         attack_dict = self.get_matrix_attacktype_score_result()
         weapon_dict = self.get_matrix_weapontype_score_result()
         target_dict = self.get_matrix_targtype_score_result()
@@ -618,51 +677,10 @@ class Data:
         data_dict = {'attack1': attack1, 'attack2': attack2, 'attack3': attack3, 'weapon1': weapon1, 'weapon2': weapon2,
                      'weapon3': weapon3, 'target1': target1, 'target2': target2, 'target3': target3,
                      'region': region}
-        X = pd.DataFrame(data_dict)
-        # X_mean = X.mean()
-        # # 样本差离阵E
-        # E = np.mat(np.zeros((10, 10)))
-        # for i in range(10):
-        #     for j in range(10):
-        #         E += (X.iloc[i, :].values.reshape(10, 1) - X_mean.values.reshape(10, 1)) * (
-        #                 X.iloc[i, :].values.reshape(1, 10) - X_mean.values.reshape(1, 10))
-        # # 样本相关阵R
-        # R = np.mat(np.zeros((10, 10)))
-        # for i in range(10):
-        #     for j in range(10):
-        #         R[i, j] = E[i, j] / sqrt(E[i, i] * E[j, j])
-        # 样本相关阵R
-        R = X.corr()
-        # 求特征值和特征向量
-        eig_value, eig_vector = nlg.eig(R)
-        eig = pd.DataFrame()
-        eig['names'] = X.columns
-        eig['eig_value'] = eig_value
-        eig.sort_values('eig_value', ascending=False, inplace=True)
-        # 求因子模型的因子载荷阵A
-        num_factor = 0
-        for m in range(1, 11):
-            if eig['eig_value'][:m].sum() / eig['eig_value'].sum() > 0.8:
-                num_factor = m
-                print("num_factor: " + str(m))
-                break
-        A = np.mat(np.zeros((10, num_factor)))
-        for i in range(num_factor):
-            A[:, i] = (sqrt(eig_value[i]) * eig_vector[:, i]).reshape(10, 1)
-        # 求特殊因子方差和共同度的估计
-        h = np.zeros(10)  # 共同度
-        D = np.mat(np.eye(10))  # 特殊因子方差
-        for i in range(10):
-            a = A[i, :] * A[i, :].T
-            h[i] = a[0, 0]
-            D[i, i] = 1 - a[0, 0]
-        a = pd.DataFrame(A)
-        column_list = []
-        index_list = []
-        for i in range(1, num_factor + 1):
-            column_list.append('factor' + str(i))
-        for j in range(1, 11):
-            index_list.append('x' + str(j))
-        a.columns = column_list
-        a.index = index_list
-        print(a)
+        return data_dict
+
+    # 获取恐怖事件的危害程度得分
+    def get_list_terror_score(self):
+        data_dict = self.get_dict_factors_score()
+
+

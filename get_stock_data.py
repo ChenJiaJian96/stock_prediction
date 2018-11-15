@@ -55,6 +55,9 @@ def get_stock_data():
         data_list = []
         while (rs.error_code == '0') & rs.next():
             data_list.append(rs.get_row_data())
+        result = pd.DataFrame(data_list, columns=rs.fields)
+        result.to_excel(r'./stock_data/' + str(code) + '_' + str(date_list[0]) + '.xlsx', index=False)
+
         rs = bs.query_history_k_data(code, "date,code,open,high,low,close,preclose", start_date='2011-07-13',
                                      end_date='2011-08-02')
         print('query_history_k_data respond error_code:' + rs.error_code)
@@ -62,6 +65,9 @@ def get_stock_data():
         while (rs.error_code == '0') & rs.next():
             # 获取一条记录，将记录合并在一起
             data_list.append(rs.get_row_data())
+        result = pd.DataFrame(data_list, columns=rs.fields)
+        result.to_excel(r'./stock_data/' + str(code) + '_' + str(date_list[1]) + '.xlsx', index=False)
+
         rs = bs.query_history_k_data(code, "date,code,open,high,low,close,preclose", start_date='2014-07-23',
                                      end_date='2014-08-12')
         print('query_history_k_data respond error_code:' + rs.error_code)
@@ -69,24 +75,26 @@ def get_stock_data():
         while (rs.error_code == '0') & rs.next():
             # 获取一条记录，将记录合并在一起
             data_list.append(rs.get_row_data())
+        result = pd.DataFrame(data_list, columns=rs.fields)
+        result.to_excel(r'./stock_data/' + str(code) + '_' + str(date_list[2]) + '.xlsx', index=False)
+
         rs = bs.query_history_k_data(code, "date,code,open,high,low,close,preclose", start_date='2015-08-02',
                                      end_date='2015-08-22')
         print('query_history_k_data respond error_code:' + rs.error_code)
-        print('query_history_k_data respond  error_msg:' + rs.error_msg)
+        print('query_history_k_data respond error_msg:' + rs.error_msg)
         while (rs.error_code == '0') & rs.next():
             # 获取一条记录，将记录合并在一起
             data_list.append(rs.get_row_data())
-
         result = pd.DataFrame(data_list, columns=rs.fields)
-        result.to_excel(r'./stock_data/' + str(code) + '.xlsx', index=False)
+        result.to_excel(r'./stock_data/' + str(code) + '_' + str(date_list[3]) + '.xlsx', index=False)
 
     # 登出系统
     bs.logout()
 
 
-# 计算正常收益模型的平均日收益率
-def cal_R(code, cur_date):
-    cur_path = stock_path(code)
+# 计算正常收益模型的日收益率
+def cal_RK(code, cur_date):
+    cur_path = stock_path(code, cur_date)
     try:
         cur_book = load_workbook(cur_path)
     except Exception:
@@ -102,34 +110,47 @@ def cal_R(code, cur_date):
         ncol_open = cur_first_row_list.index("open") + 1
         ncol_close = cur_first_row_list.index("close") + 1
         ncol_preclose = cur_first_row_list.index("preclose") + 1
-        num = 0
-        total = 0
         cur_date = strptime(str(cur_date), '%Y-%m-%d')
+        value_list1 = []
+        value_list2 = []
         for i in range(2, cur_nrow + 1):
             stock_date = strptime(str(cur_sheet.cell(i, ncol_date).value), '%Y-%m-%d')
-            # 事情发生的前五天内
-            if 0 < int(mktime(cur_date) - mktime(stock_date)) < 432001:
-                num += 1
-                total += (float(cur_sheet.cell(i, ncol_close).value) - float(
-                    cur_sheet.cell(i, ncol_open).value)) / float(
-                    cur_sheet.cell(i, ncol_preclose).value)
-        return total / num
+            if int(mktime(cur_date) > mktime(stock_date)):
+                value = (float(cur_sheet.cell(i, ncol_close).value) - float(cur_sheet.cell(i, ncol_open).value)) / float(cur_sheet.cell(i, ncol_preclose).value)
+                value_list1.append(value)
+            if int(mktime(cur_date) < mktime(stock_date)):
+                value = (float(cur_sheet.cell(i, ncol_close).value) - float(cur_sheet.cell(i, ncol_open).value)) / float(cur_sheet.cell(i, ncol_preclose).value)
+                value_list2.append(value)
+        len_list = len(value_list1)
+        result_list1 = []
+        result_list2 = []
+        for i in range(len_list - 5, len_list):
+            result_list1.append(value_list1[i])
+        for i in range(5):
+            result_list2.append(value_list2[i])
+        return result_list1, result_list2
 
 
-# 计算每个股票每个日期的正常平均日收益率
-def get_matrix_R():
-    result_matrix = {}
+# 计算每个股票每个日期的正常日收益率
+def get_matrix_RK():
+    result_matrix1 = {}
+    result_matrix2 = {}
     for code in code_list:
         for cur_date in date_list:
-            result = cal_R(code, cur_date)
-            if result != 0:
-                result_matrix[code, cur_date] = result
-    return result_matrix
+            result_list1, result_list2 = cal_RK(code, cur_date)
+            for i in range(5):
+                result_matrix1[code, cur_date, i] = result_list1[i]
+                result_matrix2[code, cur_date, i] = result_list2[i]
+    return result_matrix1, result_matrix2
 
 
-def stock_path(str):
-    return r'./stock_data/sh.' + str + '.xlsx'
+# # 矩阵相减计算异常收益率
+# def cal_Ex(m1, m2):
+
+
+def stock_path(code, cur_date):
+    return r'./stock_data/sh.' + code + '_' + cur_date + '.xlsx'
 
 
 # get_stock_data()
-print(get_matrix_R())
+before_matrix, after_matrix = get_matrix_RK()  # 事故发生前后的日收益率

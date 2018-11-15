@@ -64,6 +64,8 @@ class Data:
                 self.sheet.cell(i, self.ncol_targtype2).value = 0
             if self.sheet.cell(i, self.ncol_targtype3).value is None:
                 self.sheet.cell(i, self.ncol_targtype3).value = 0
+        self.data.save(r'./competition topic/proceed.xlsx')
+        self.data = load_workbook(r'./competition topic/proceed.xlsx')
         self.sheet = self.data.worksheets[0]
         # 根据欧几里得距离计算相似度，匹配填充nkill,nwound,propextent
         # 数据二维列表，n行12列，计算保存相似度
@@ -640,6 +642,8 @@ class Data:
         A = np.mat(np.zeros((10, num_factor)))
         for i in range(num_factor):
             A[:, i] = (sqrt(eig_value[i]) * eig_vector[:, i]).reshape(10, 1)
+        print("因子载荷阵A")
+        print(A)
         # 求特殊因子方差和共同度的估计
         h = np.zeros(10)  # 共同度
         D = np.mat(np.eye(10))  # 特殊因子方差
@@ -647,32 +651,33 @@ class Data:
             a = A[i, :] * A[i, :].T
             h[i] = a[0, 0]
             D[i, i] = 1 - a[0, 0]
-        a = pd.DataFrame(A)
-        column_list = []
-        index_list = []
-        for i in range(1, num_factor + 1):
-            column_list.append('factor' + str(i))
-        for j in range(1, 11):
-            index_list.append('x' + str(j))
-        a.columns = column_list
-        a.index = index_list
-        print(a)
-        # 计算逆矩阵，得出Factor = B * X
-        B = A.I
-        b = pd.DataFrame(B)
-        b.columns = index_list
-        b.index = column_list
-        print(b)
-        # 得出特殊因子得分
-        score_result = {}
-        for i in range(0, num_factor):
-            score = 0
-            for j in range(0, 10):
-                score += B[i, j] * X_mean[j]
-            score_result[i] = score
-        print("因子得分列表")
-        print(score_result)
-        return score_result
+        print("正交矩阵")
+        print(D)
+        print("D x A")
+        R = D * A
+        print(R)
+        # 开始计算每个事件的得分
+        # TODO: 取消假数据
+        top7_list = [0, 1, 2, 3, 4, 5, 9]
+        eig_list = []
+        for j in top7_list:
+            eig_list.append(eig['eig_value'][j])
+        # sum_eig = sum(eig_list)
+        print(eig_list)
+        name_list = ["attack1", "attack2", "attack3", "weapon1", "weapon2", "weapon3", "region"]
+        damage_dict = {}
+        for i in range(1, self.nrow_data):
+            damage_score = 0
+            for j in range(7):
+                Fj = R[j, 0] * data_dict[name_list[0]][i - 1] + R[j, 1] * data_dict[name_list[1]][i - 1] + R[j, 2] * \
+                     data_dict[name_list[2]][i - 1] + R[j, 3] * data_dict[name_list[3]][i - 1] + R[j, 4] * \
+                     data_dict[name_list[4]][i - 1] + R[j, 5] * data_dict[name_list[5]][i - 1] + R[j, 6] * \
+                     data_dict[name_list[6]][i - 1]
+                damage_score += eig_list[j] * Fj
+            # damage_score = damage_score / sum_eig
+            damage_dict[i] = damage_score
+        return damage_dict
+
 
     # 获取10个影响因素根据源数据换算分数的dict
     def get_dict_factors_score(self):

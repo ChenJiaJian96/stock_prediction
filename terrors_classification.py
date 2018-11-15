@@ -13,5 +13,5 @@ data = init_data()  # 创建实例
 # data.get_matrix_attacktype_score()
 # data.get_matrix_weapontype_score()
 # data.insert_score()
-data.cal_total_F()
+# data.cal_total_F()
 print("finish!!!")

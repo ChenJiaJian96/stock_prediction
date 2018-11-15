@@ -64,8 +64,6 @@ class Data:
                 self.sheet.cell(i, self.ncol_targtype2).value = 0
             if self.sheet.cell(i, self.ncol_targtype3).value is None:
                 self.sheet.cell(i, self.ncol_targtype3).value = 0
-        self.data.save(r'./competition topic/proceed.xlsx')
-        self.data = load_workbook(r'./competition topic/proceed.xlsx')
         self.sheet = self.data.worksheets[0]
         # 根据欧几里得距离计算相似度，匹配填充nkill,nwound,propextent
         # 数据二维列表，n行12列，计算保存相似度
@@ -106,8 +104,56 @@ class Data:
                 prop_data = self.sheet.cell(min_pos, self.ncol_propextent).value
                 self.sheet.cell(i, self.ncol_propextent).value = prop_data
         self.data.save(r'./competition topic/proceed.xlsx')
-        self.data = load_workbook(r'./competition topic/proceed.xlsx')
-        self.sheet = self.data.worksheets[0]
+        print("init finished!!!")
+
+    # 填充得分
+    def insert_score(self):
+        attack_dict = self.get_matrix_attacktype_score_result()
+        weapon_dict = self.get_matrix_weapontype_score_result()
+        target_dict = self.get_matrix_targtype_score_result()
+        region_dict = self.get_matrix_region_score_result()
+        attack1 = self.get_data_list("attacktype1")
+        for i in range(len(attack1)):
+            if attack1[i] != 0:
+                self.sheet.cell(i + 2, self.ncol_attacktype1).value = attack_dict[attack1[i]]
+        attack2 = self.get_data_list("attacktype2")
+        for i in range(len(attack2)):
+            if attack2[i] != 0:
+                self.sheet.cell(i + 2, self.ncol_attacktype2).value = attack_dict[attack2[i]]
+        attack3 = self.get_data_list("attacktype3")
+        for i in range(len(attack3)):
+            if attack3[i] != 0:
+                self.sheet.cell(i + 2, self.ncol_attacktype3).value = attack_dict[attack3[i]]
+        weapon1 = self.get_data_list('weaptype1')
+        for i in range(len(weapon1)):
+            if weapon1[i] != 0:
+                self.sheet.cell(i + 2, self.ncol_weaptype1).value = weapon_dict[weapon1[i]]
+        weapon2 = self.get_data_list('weaptype2')
+        for i in range(len(weapon2)):
+            if weapon2[i] != 0:
+                self.sheet.cell(i + 2, self.ncol_weaptype2).value = weapon_dict[weapon2[i]]
+        weapon3 = self.get_data_list('weaptype3')
+        for i in range(len(weapon3)):
+            if weapon3[i] != 0:
+                self.sheet.cell(i + 2, self.ncol_weaptype3).value = weapon_dict[weapon3[i]]
+        target1 = self.get_data_list('targtype1')
+        for i in range(len(target1)):
+            if target1[i] != 0:
+                self.sheet.cell(i + 2, self.ncol_targtype1).value = target_dict[target1[i]]
+        target2 = self.get_data_list('targtype2')
+        for i in range(len(target2)):
+            if target2[i] != 0:
+                self.sheet.cell(i + 2, self.ncol_targtype2).value = target_dict[target2[i]]
+        target3 = self.get_data_list('targtype3')
+        for i in range(len(target3)):
+            if target3[i] != 0:
+                self.sheet.cell(i + 2, self.ncol_targtype3).value = target_dict[target3[i]]
+        region = self.get_data_list('region')
+        for i in range(len(region)):
+            if region[i] != 0:
+                self.sheet.cell(i + 2, self.ncol_region).value = region_dict[region[i]]
+        self.data.save(r'./competition topic/proceed.xlsx')
+        print("insert finished!!!")
 
     # 返回填充数据时需要计算相似度的数据
     def ret_datalist_cal_simi(self, row):

@@ -30,6 +30,8 @@ class Data:
         for i in range(1, self.ncol_data + 1):
             self.first_row_list.append(self.sheet.cell(1, i).value)
         # 对用列序号
+        print(self.first_row_list)
+        self.ncol_id = self.first_row_list.index('eventid') + 1
         self.ncol_iyear = self.first_row_list.index('iyear') + 1
         self.ncol_region = self.first_row_list.index('region') + 1
         self.ncol_attacktype1 = self.first_row_list.index('attacktype1') + 1
@@ -678,7 +680,6 @@ class Data:
             damage_dict[i] = damage_score
         return damage_dict
 
-
     # 获取10个影响因素根据源数据换算分数的dict
     def get_dict_factors_score(self):
         attack_dict = self.get_matrix_attacktype_score_result()
@@ -731,5 +732,63 @@ class Data:
         return data_dict
 
     # 获取恐怖事件的危害程度得分
-    def get_list_terror_score(self):
-        data_dict = self.get_dict_factors_score()
+    @staticmethod
+    def get_terror_score_by_factor(x1, x2, x3, x4, x5, x6, x7):
+        return 20.548 * x1 + 17.859 * x2 + 13.199 * x3 + 9.796 * x4 + 9.452 * x5 + 8.691 * x6 + 7.353 * x7
+
+    def cell_data(self, nrow, ncol):
+        return self.sheet.cell(nrow, ncol).value
+
+    # 根据关联事件计算Fkill
+    def cal_total_F(self):
+        ncol_fkill = self.first_row_list.index('Fkill') + 1
+        ncol_f = self.first_row_list.index("F") + 1
+        ncol_fsum = self.first_row_list.index("Fsum") + 1
+        ncol_fac1 = self.first_row_list.index("FAC1_7") + 1
+        ncol_fac2 = self.first_row_list.index("FAC2_7") + 1
+        ncol_fac3 = self.first_row_list.index("FAC3_7") + 1
+        ncol_fac4 = self.first_row_list.index("FAC4_7") + 1
+        ncol_fac5 = self.first_row_list.index("FAC5_7") + 1
+        ncol_fac6 = self.first_row_list.index("FAC6_7") + 1
+        ncol_fac7 = self.first_row_list.index("FAC7_7") + 1
+        ncol_relative = self.first_row_list.index('related') + 1
+        for i in range(2, self.nrow_data):
+            print("cal No " + str(i) + "row's F")
+            F = self.get_terror_score_by_factor(self.cell_data(i, ncol_fac1), self.cell_data(i, ncol_fac2),
+                                                self.cell_data(i, ncol_fac3), self.cell_data(i, ncol_fac4),
+                                                self.cell_data(i, ncol_fac5), self.cell_data(i, ncol_fac6),
+                                                self.cell_data(i, ncol_fac7))
+            self.sheet.cell(i, ncol_f).value = F
+        for i in range(2, self.nrow_data):
+            print("cal No " + str(i) + "row's relatives")
+            if self.sheet.cell(i, ncol_relative).value is not None:
+                str_list = self.sheet.cell(i, ncol_relative).value
+                relative_list = str_list.split(', ')
+                total_kill = self.sheet.cell(i, self.ncol_nkill).value
+                max_F = self.sheet.cell(i, ncol_f).value
+                for id in relative_list:
+                    pos = self.find_id_in_below30(id, i)
+                    if pos == 0:
+                        continue
+                    else:
+                        self.sheet.delete_rows(pos + 2)
+                        total_kill += self.cell_data(pos + 2, self.ncol_nkill)
+                        if self.cell_data(pos + 2, ncol_f) > max_F:
+                            max_F = self.cell_data(pos + 2, ncol_f)
+                self.sheet.cell(i, self.ncol_nkill).value = total_kill
+                self.sheet.cell(i, ncol_f).value = max_F
+        sum_kill = sum(self.get_data_list("nkill"))
+        for i in range(2, self.nrow_data):
+            print("cal No " + str(i) + "row's fkill & fsum")
+            self.sheet.cell(i, ncol_fkill).value = self.cell_data(i, self.ncol_nkill) / sum_kill * 200000
+            self.sheet.cell(i, ncol_fsum).value = self.cell_data(i, ncol_f) + self.cell_data(i, ncol_fkill)
+        self.data.save(r'./competition topic/proceed.xlsx')
+
+    # 从起始行向下寻找30行寻找所需的id
+    def find_id_in_below30(self, id, start_pos):
+        pos = 0
+        for i in range(start_pos, start_pos + 30):
+            if self.cell_data(i, self.ncol_id) == id:
+                pos = i
+                break
+        return pos

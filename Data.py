@@ -576,7 +576,7 @@ class Data:
     # 获取攻击类型的权重分类得分
     @staticmethod
     def get_matrix_attacktype_score_result():
-        result = {1: 1.6, 2: 2.7, 3: 2.3, 4: 2.2, 5: 2.4, 6: 1.7, 7: 1.3, 8: 3.8, 9: 4.0}
+        result = {1: 1.6, 2: 1.7, 3: 3, 4: 4.7, 5: 3.1, 6: 1.7, 7: 1.3, 8: 2.2, 9: 2.7}
         print("单一攻击类型的得分")
         print(result)
         return result
@@ -584,8 +584,8 @@ class Data:
     # 获取武器类型的权重分类得分
     @staticmethod
     def get_matrix_weapontype_score_result():
-        result = {1: 1.0, 2: 2.3, 3: 1.0, 4: 1.0, 5: 3.7, 6: 3.3, 7: 2.4, 8: 2.3, 9: 2.7, 10: 4.1, 11: 2.2, 12: 2.0,
-                  13: 4.0}
+        result = {1: 1.0, 2: 3.1, 3: 1.0, 4: 1.0, 5: 2.0, 6: 3.3, 7: 4.0, 8: 2.3, 9: 3, 10: 5.0, 11: 1.6, 12: 2.0,
+                  13: 2.7}
         print("单一武器类型的得分")
         print(result)
         return result
@@ -728,5 +728,3 @@ class Data:
     # 获取恐怖事件的危害程度得分
     def get_list_terror_score(self):
         data_dict = self.get_dict_factors_score()
-
-

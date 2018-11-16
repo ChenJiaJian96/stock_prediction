@@ -780,8 +780,8 @@ class Data:
         sum_kill = sum(self.get_data_list("nkill"))
         for i in range(2, self.nrow_data):
             print("cal No " + str(i) + "row's fkill & fsum")
-            self.sheet.cell(i, ncol_fkill).value = self.cell_data(i, self.ncol_nkill) / sum_kill * 200000
-            self.sheet.cell(i, ncol_fsum).value = self.cell_data(i, ncol_f) + self.cell_data(i, ncol_fkill)
+            self.sheet.cell(i, ncol_fkill).value = self.cell_data(i, self.ncol_nkill) / sum_kill * 210000
+            self.sheet.cell(i, ncol_fsum).value = 0.3 * self.cell_data(i, ncol_f) + 0.7 * self.cell_data(i, ncol_fkill)
         self.data.save(r'./competition topic/proceed.xlsx')
 
     # 从起始行向下寻找30行寻找所需的id

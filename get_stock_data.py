@@ -12,21 +12,10 @@ code_list = ["600108", "600896", "600897", "600642", "600719", "600769", "600863
              "600098", "600644", "600726", "600780", "600864", "600054", "600798", "600011", "600116", "600674",
              "600744", "600795", "600886", "600138", "600068", "600758", "000002", "000031", "600684", "600743",
              "600766", "600807", "600895", "600419", "600489", "600610", "600750", "600810", "600819", "600830",
-             "600889", "600321", "600051", "600531"]
+             "600889", "600321", "600051", "600531", ]
+std_code_list = ["000001", "399001"]
+# 000001上证指数 399001深证指数
 date_list = ['2009-06-29', '2011-07-23', '2014-08-02', '2015-08-12']
-
-
-# data = load_workbook(r'./competition topic/事故灾害统计表.xlsx')
-# sheet = data.worksheets[0]
-# ncol_data = sheet.max_column
-# nrow_data = sheet.max_row
-# num_affair = nrow_data - 1  # 表明要计算的事件数
-# first_row_list = []
-# for i in range(1, ncol_data + 1):
-# first_row_list.append(sheet.cell(1, i).value)
-# ncol_year = first_row_list.index("iyear") + 1
-# ncol_month = first_row_list.index("imonth") + 1
-# ncol_day = first_row_list.index("iday") + 1
 
 
 # 初始化股票数据
@@ -47,7 +36,7 @@ def get_stock_data():
     # low	最低价
     # close	收盘价
     # preclose	昨日收盘价
-    for code in code_list:
+    for code in code_list + std_code_list:
         code = "sh." + code
         rs = bs.query_history_k_data(code, "date,code,open,high,low,close,preclose", start_date='2009-06-19',
                                      end_date='2009-07-10')
@@ -93,41 +82,43 @@ def get_stock_data():
     bs.logout()
 
 
-# 计算正常收益模型的日收益率
+# 计算正常收益模型的日收益率 区间[-5,5] 共11天
 def cal_R(code, cur_date):
     cur_path = stock_path(code, cur_date)
-    try:
-        cur_book = load_workbook(cur_path)
-    except Exception:
-        return 0
-    else:
-        cur_sheet = cur_book.worksheets[0]
-        cur_nrow = cur_sheet.max_row
-        cur_ncol = cur_sheet.max_column
-        cur_first_row_list = []
-        for i in range(1, cur_ncol + 1):
-            cur_first_row_list.append(cur_sheet.cell(1, i).value)
-        ncol_date = cur_first_row_list.index("date") + 1
-        ncol_open = cur_first_row_list.index("open") + 1
-        ncol_close = cur_first_row_list.index("close") + 1
-        ncol_preclose = cur_first_row_list.index("preclose") + 1
-        cur_date = strptime(str(cur_date), '%Y-%m-%d')
-        value_list1 = []
-        for i in range(2, cur_nrow + 1):
-            stock_date = strptime(str(cur_sheet.cell(i, ncol_date).value), '%Y-%m-%d')
-            if int(mktime(cur_date) > mktime(stock_date)):
-                value = (float(cur_sheet.cell(i, ncol_close).value) - float(
-                    cur_sheet.cell(i, ncol_open).value)) / float(cur_sheet.cell(i, ncol_preclose).value)
-                value_list1.append(value)
-        len_list = len(value_list1)
-        result_list1 = []
-        for i in range(len_list - 5, len_list):
-            result_list1.append(value_list1[i])
-        return result_list1
+    cur_book = load_workbook(cur_path)
+    cur_sheet = cur_book.worksheets[0]
+    cur_nrow = cur_sheet.max_row
+    cur_ncol = cur_sheet.max_column
+    cur_first_row_list = []
+    for i in range(1, cur_ncol + 1):
+        cur_first_row_list.append(cur_sheet.cell(1, i).value)
+    ncol_date = cur_first_row_list.index("date") + 1
+    ncol_close = cur_first_row_list.index("close") + 1
+    ncol_preclose = cur_first_row_list.index("preclose") + 1
+    cur_date = strptime(str(cur_date), '%Y-%m-%d')
+    value_list1 = []
+    value_list2 = []
+    for i in range(2, cur_nrow + 1):
+        stock_date = strptime(str(cur_sheet.cell(i, ncol_date).value), '%Y-%m-%d')
+        if int(mktime(cur_date) > mktime(stock_date)):
+            value = (float(cur_sheet.cell(i, ncol_close).value) - float(
+                cur_sheet.cell(i, ncol_preclose).value)) / float(cur_sheet.cell(i, ncol_preclose).value)
+            value_list1.append(value)
+        if int(mktime(cur_date) <= mktime(stock_date)):
+            value = (float(cur_sheet.cell(i, ncol_close).value) - float(
+                cur_sheet.cell(i, ncol_preclose).value)) / float(cur_sheet.cell(i, ncol_preclose).value)
+            value_list2.append(value)
+    len_list = len(value_list1)
+    result_list1 = []
+    result_list2 = []
+    for i in range(len_list - 5, len_list):
+        result_list1.append(value_list1[i])
+    for i in range(6):
+        result_list2.append(value_list2[i])
 
 
-# 计算事故发生后实际的日收益率
-def cal_K(code, cur_date):
+# 计算日收益率矩阵
+def cal_R_matrix(code, cur_date):
     cur_path = stock_path(code, cur_date)
     try:
         cur_book = load_workbook(cur_path)
@@ -158,13 +149,13 @@ def cal_K(code, cur_date):
         return result_list2
 
 
-# 计算每个股票每个日期的正常日收益率
+# 计算每个股票每个日期的日收益率 区间[-5,5] 共11天
 def get_matrix_RK():
     result_matrix1 = {}
     result_matrix2 = {}
     for code in code_list:
         for cur_date in date_list:
-            result_list1 = cal_R(code, cur_date)
+            result_list = cal_R(code, cur_date)
             result_list2 = cal_K(code, cur_date)
             for i in range(5):
                 result_matrix1[code, cur_date, i] = result_list1[i]
@@ -349,9 +340,8 @@ def AVOL_ave_std(vol):
 def stock_path(code, cur_date):
     return r'./stock_data/sh.' + code + '_' + cur_date + '.xlsx'
 
-
 # 获取股票数据
-# get_stock_data()
+get_stock_data()
 
 # date: 日期 同时表示事件
 # code: 股票代码
